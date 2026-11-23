@@ -26,7 +26,7 @@ try {
     !/^https:\/\/x\.com\/[^/]+\/status\/\d+$/.test(url)
   ) {
     console.error(
-      "POST.json url must have the shape https://x.com/<handle>/status/<digits>.",
+      `POST.json url is invalid: ${JSON.stringify(url)}. It must have the shape https://x.com/<handle>/status/<digits> with no query string or trailing slash.`,
     );
     process.exit(1);
   }
