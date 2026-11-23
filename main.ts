@@ -1,19 +1,39 @@
-// gta6-meme-x-01 entry program (Node 22, standard library only).
+// gta6-meme-x-01 v3 entry program (Node 22, standard library only).
 //
 // The entry itself is an X post, named in POST.json at the repository root.
-// This program's only job is to copy that file into the output directory,
-// exactly as the grader expects. The house reads the post itself from X;
-// nothing written here is judged.
-import { copyFileSync, mkdirSync } from "node:fs";
-import { resolve } from "node:path";
+// This program only copies that file into the output directory, where the
+// gate reads it. The house reads the post itself from X; nothing written
+// here is judged.
+import { copyFileSync, mkdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 
-const botDir = process.env.MAKEFUN_BOT_DIR ?? ".";
-const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? "out";
+const botDir = process.env.MAKEFUN_BOT_DIR ?? "/bot";
+const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? "/output";
 
-// Resolve both sides to absolute paths so the copy behaves the same
-// no matter which directory node was launched from.
-const source = resolve(botDir, "POST.json");
-const targetDir = resolve(outDir);
-
-mkdirSync(targetDir, { recursive: true });
-copyFileSync(source, resolve(targetDir, "POST.json"));
+mkdirSync(outDir, { recursive: true });
+try {
+  const raw = readFileSync(join(botDir, "POST.json"), "utf8");
+  let post: unknown;
+  try {
+    post = JSON.parse(raw);
+  } catch {
+    console.error("POST.json is not valid JSON.");
+    process.exit(1);
+  }
+  const url = (post as { url?: unknown } | null)?.url;
+  if (
+    typeof url !== "string" ||
+    !/^https:\/\/x\.com\/[^/]+\/status\/\d+$/.test(url)
+  ) {
+    console.error(
+      "POST.json url must have the shape https://x.com/<handle>/status/<digits>.",
+    );
+    process.exit(1);
+  }
+  copyFileSync(join(botDir, "POST.json"), join(outDir, "POST.json"));
+} catch (err) {
+  console.error(
+    `POST.json could not be copied from ${botDir}: ${(err as Error).message}`,
+  );
+  process.exit(1);
+}
